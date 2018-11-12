@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"github.com/hashicorp/go-multierror"
-	fmt "gopkg.in/ffmt.v1"
+	"gopkg.in/ffmt.v1"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -24,10 +24,7 @@ var errorsList *multierror.Error
 
 func errorHandler(newError error) {
 	errorsList = multierror.Append(errorsList, newError)
-	//_, _, line, _ := runtime.Caller(1)
-
-	fmt.MarkStack(1, newError) // good, position of errorHandler func call
-	fmt.Mark(newError)              // bad, current position
+	ffmt.MarkStack(1, newError) // uses runtime.Caller(2)
 }
 
 func main() {
@@ -42,7 +39,7 @@ func main() {
 	}
 
 	if errorsList != nil {
-		fmt.Mark(errorsList)
+		ffmt.Mark(errorsList)
 		os.Exit(1)
 	}
 }
@@ -53,8 +50,7 @@ func loadConfigs(path string) []MapConfig {
 	fileData, ioError := ioutil.ReadFile(path)
 
 	if ioError != nil {
-		errorsList = multierror.Append(errorsList, ioError)
-		fmt.Mark(ioError)
+		errorHandler(ioError)
 	}
 
 	yaml.Unmarshal([]byte(fileData), &configs)
@@ -65,33 +61,31 @@ func loadConfigs(path string) []MapConfig {
 func loadRedirects(path string) []Redirect {
 	var redirects []Redirect
 
-	fmt.Printf("Reading redirects from: %s \n", path)
+	ffmt.Printf("> Reading redirects from: %s \n", path)
 
 	file, ioError := os.Open(path)
-
-	if ioError != nil {
-		errorsList = multierror.Append(errorsList, ioError)
-		fmt.Mark(ioError)
-	}
-
 	defer file.Close()
 
-	reader := bufio.NewReader(file)
+	// TODO Finish implementation
+	if ioError == nil {
+		reader := bufio.NewReader(file)
 
-	for {
-		line, ioError := reader.ReadString('\n')
+		for {
+			line, ioError := reader.ReadString('\n')
 
-		if ioError != nil {
-			errorsList = multierror.Append(errorsList, ioError)
-			fmt.Mark(ioError)
+			if ioError != nil {
+				errorHandler(ioError)
+			}
+
+			// Process the line here.
+			//fmt.Println(" > > " + string(line))
+
+			if len(line) == 0 {
+				break
+			}
 		}
-
-		// Process the line here.
-		//fmt.Println(" > > " + string(line))
-
-		if len(line) == 0 {
-			break
-		}
+	} else {
+		errorHandler(ioError)
 	}
 
 	return redirects
@@ -100,4 +94,6 @@ func loadRedirects(path string) []Redirect {
 func checkMap(config MapConfig) {
 	redirects := loadRedirects(config.Path)
 	redirects = redirects
+
+	// TODO Implement redirects checking
 }
