@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
 	"bufio"
 	"errors"
-	"io/ioutil"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/hashicorp/go-multierror"
 	fmt "gopkg.in/ffmt.v1"
-	multierror "github.com/hashicorp/go-multierror"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"os"
 )
 
 type Redirect struct {
@@ -24,7 +24,10 @@ var errorsList *multierror.Error
 
 func errorHandler(newError error) {
 	errorsList = multierror.Append(errorsList, newError)
-	fmt.Mark(newError)
+	//_, _, line, _ := runtime.Caller(1)
+
+	fmt.MarkStack(1, newError) // good, position of errorHandler func call
+	fmt.Mark(newError)              // bad, current position
 }
 
 func main() {
