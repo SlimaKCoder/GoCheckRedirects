@@ -1,11 +1,13 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"os"
+	"bufio"
+	"errors"
+	"io/ioutil"
+	yaml "gopkg.in/yaml.v2"
+	fmt "gopkg.in/ffmt.v1"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 type Redirect struct {
@@ -14,53 +16,77 @@ type Redirect struct {
 }
 
 type MapConfig struct {
-	Name string
 	Domain string
 	Path string
+}
+
+var errorsList *multierror.Error
+
+func errorHandler(newError error) {
+	errorsList = multierror.Append(errorsList, newError)
+	fmt.Mark(newError)
 }
 
 func main() {
 	var configs = loadConfigs(`config.yml`)
 
-	for _, config := range configs {
-		checkMap(config)
+	if configs != nil {
+		for _, config := range configs {
+			checkMap(config)
+		}
+	} else {
+		errorHandler(errors.New("read config.yml: empty file"))
 	}
 
+	if errorsList != nil {
+		fmt.Mark(errorsList)
+		os.Exit(1)
+	}
 }
 
 func loadConfigs(path string) []MapConfig {
 	var configs []MapConfig = nil // Support up to 100 maps
 
-	fileData, _ := ioutil.ReadFile(path)
+	fileData, ioError := ioutil.ReadFile(path)
+
+	if ioError != nil {
+		errorsList = multierror.Append(errorsList, ioError)
+		fmt.Mark(ioError)
+	}
+
 	yaml.Unmarshal([]byte(fileData), &configs)
 
 	return configs
 }
 
 func loadRedirects(path string) []Redirect {
-	fmt.Printf("Reading file from: %s \n", path)
+	var redirects []Redirect
 
-	file, io_error := os.Open(path)
+	fmt.Printf("Reading redirects from: %s \n", path)
 
-	if io_error != nil {
-		fmt.Printf("Error: %s\n", io_error)
+	file, ioError := os.Open(path)
+
+	if ioError != nil {
+		errorsList = multierror.Append(errorsList, ioError)
+		fmt.Mark(ioError)
 	}
 
 	defer file.Close()
 
 	reader := bufio.NewReader(file)
 
-	var redirects []Redirect
-
 	for {
-		line, _ := reader.ReadString('\n')
+		line, ioError := reader.ReadString('\n')
 
-		fmt.Printf(" > Read %d characters\n", len(line))
+		if ioError != nil {
+			errorsList = multierror.Append(errorsList, ioError)
+			fmt.Mark(ioError)
+		}
 
 		// Process the line here.
 		//fmt.Println(" > > " + string(line))
 
-		if file == nil {
+		if len(line) == 0 {
 			break
 		}
 	}
