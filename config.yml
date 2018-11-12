@@ -1,0 +1,6 @@
+[
+  {
+    domain: "example.com",
+    path: "./example_com.redirects"
+  }
+]
