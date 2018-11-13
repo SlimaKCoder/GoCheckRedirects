@@ -115,8 +115,8 @@ func checkRedirectAsync(redirect Redirect, url string, index int, wg *sync.WaitG
 func checkRedirect(redirect Redirect, url string, optionalArgs ...int) {
 	var index int
 
-	if optionalArgs == nil {
-		index = 0
+	if optionalArgs != nil {
+		index = optionalArgs[0]
 	}
 
 	response, httpError := http.Get(url)
