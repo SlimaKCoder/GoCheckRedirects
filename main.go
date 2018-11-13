@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 type Redirect struct {
@@ -92,27 +93,47 @@ func loadRedirects(path string) []Redirect {
 	return redirects
 }
 
-
-
 func checkRedirects(redirects []Redirect, url string) {
+	var wg sync.WaitGroup
+
 	ffmt.Printf(">>> Checking redirects for: %s \n", url)
 
-	// TODO Implement redirects checking
-	for i, redirect := range redirects {
-		response, httpError := http.Get(url)
-
-		if httpError == nil {
-			ffmt.Printf("---- [%d] ---- \n", i)
-			ffmt.Printf("> Source: %s \n", redirect.Source)
-			ffmt.Printf("> Dest: %s \n", redirect.Dest)
-			ffmt.Printf("> Actual: %s \n", redirect.Dest)
-			ffmt.Printf("> Status: %s \n", response.Status)
-		} else {
-			errorHandler(httpError)
-		}
+	for index, redirect := range redirects {
+		// TODO limit threads
+		go checkRedirectAsync(redirect, url, index, &wg)
+		wg.Add(1)
 	}
 
+	wg.Wait()
 }
+
+func checkRedirectAsync(redirect Redirect, url string, index int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	checkRedirect(redirect, url, index)
+}
+
+func checkRedirect(redirect Redirect, url string, optionalArgs ...int) {
+	var index int
+
+	if optionalArgs == nil {
+		index = 0
+	}
+
+	response, httpError := http.Get(url)
+
+	// TODO Implement redirects checking
+	if httpError == nil {
+		// TODO Fix async printing
+		ffmt.Printf("---- [%d] ---- \n", index)
+		ffmt.Printf("> Source: %s \n", redirect.Source)
+		ffmt.Printf("> Dest: %s \n", redirect.Dest)
+		ffmt.Printf("> Actual: %s \n", redirect.Dest)
+		ffmt.Printf("> Status: %s \n", response.Status)
+	} else {
+		errorHandler(httpError)
+	}
+}
+
 	//if ioError != nil {
 	//	errorHandler(
 	//		errors.New(
