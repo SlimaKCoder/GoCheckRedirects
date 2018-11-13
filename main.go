@@ -1,13 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"github.com/hashicorp/go-multierror"
 	"gopkg.in/ffmt.v1"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type Redirect struct {
@@ -28,14 +28,16 @@ func errorHandler(newError error) {
 }
 
 func main() {
-	var configs = loadConfigs(`config.yml`)
+	configs := loadConfigs(`config.yml`)
 
 	if configs != nil {
 		for _, config := range configs {
-			checkMap(config)
+			redirects := loadRedirects(config.Path)
+			checkRedirects(redirects)
 		}
 	} else {
-		errorHandler(errors.New("read config.yml: empty file"))
+		errorHandler(
+			errors.New("read config.yml: empty file"))
 	}
 
 	if errorsList != nil {
@@ -45,7 +47,7 @@ func main() {
 }
 
 func loadConfigs(path string) []MapConfig {
-	var configs []MapConfig = nil // Support up to 100 maps
+	var configs []MapConfig
 
 	fileData, ioError := ioutil.ReadFile(path)
 
@@ -61,24 +63,22 @@ func loadConfigs(path string) []MapConfig {
 func loadRedirects(path string) []Redirect {
 	var redirects []Redirect
 
-	ffmt.Printf("> Reading redirects from: %s \n", path)
+	ffmt.Printf(">>> Reading redirects from: %s \n", path)
 
-	file, ioError := os.Open(path)
-	defer file.Close()
+	// Loads everything into memory, it may be good idea to optimize it
+	content, ioError := ioutil.ReadFile(path)
+	lines := strings.Split(string(content), "\n")
 
-	// TODO Finish implementation
 	if ioError == nil {
-		reader := bufio.NewReader(file)
+		for _, line := range lines{
+			urls := strings.Fields(line)
 
-		for {
-			line, ioError := reader.ReadString('\n')
-
-			if ioError != nil {
-				errorHandler(ioError)
+			redirect := Redirect{
+				Source: urls[0],
+				Dest: urls[1],
 			}
 
-			// Process the line here.
-			//fmt.Println(" > > " + string(line))
+			redirects = append(redirects, redirect)
 
 			if len(line) == 0 {
 				break
@@ -91,9 +91,20 @@ func loadRedirects(path string) []Redirect {
 	return redirects
 }
 
-func checkMap(config MapConfig) {
-	redirects := loadRedirects(config.Path)
-	redirects = redirects
+
+
+func checkRedirects(redirects []Redirect) {
+	ffmt.Print(">>> Checking redirects...")
 
 	// TODO Implement redirects checking
+	for i, redirect := range redirects {
+		ffmt.Printf("> [%d] From: %s To: %s \n", i, redirect.Source, redirect.Dest)
+	}
+
 }
+	//if ioError != nil {
+	//	errorHandler(
+	//		errors.New(
+	//			strings.Join(
+	//				[]string{"read ", path, ": ", ioError.Error()}, "")))
+	//}
