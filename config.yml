@@ -1,6 +1,6 @@
 [
   {
-    domain: "example.com",
+    url: "http://example.com",
     path: "./example_com.redirects"
   }
 ]

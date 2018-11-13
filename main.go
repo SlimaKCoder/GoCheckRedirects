@@ -6,6 +6,7 @@ import (
 	"gopkg.in/ffmt.v1"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -16,7 +17,7 @@ type Redirect struct {
 }
 
 type MapConfig struct {
-	Domain string
+	Url string
 	Path string
 }
 
@@ -33,7 +34,7 @@ func main() {
 	if configs != nil {
 		for _, config := range configs {
 			redirects := loadRedirects(config.Path)
-			checkRedirects(redirects)
+			checkRedirects(redirects, config.Url)
 		}
 	} else {
 		errorHandler(
@@ -93,12 +94,22 @@ func loadRedirects(path string) []Redirect {
 
 
 
-func checkRedirects(redirects []Redirect) {
-	ffmt.Print(">>> Checking redirects...")
+func checkRedirects(redirects []Redirect, url string) {
+	ffmt.Printf(">>> Checking redirects for: %s \n", url)
 
 	// TODO Implement redirects checking
 	for i, redirect := range redirects {
-		ffmt.Printf("> [%d] From: %s To: %s \n", i, redirect.Source, redirect.Dest)
+		response, httpError := http.Get(url)
+
+		if httpError == nil {
+			ffmt.Printf("---- [%d] ---- \n", i)
+			ffmt.Printf("> Source: %s \n", redirect.Source)
+			ffmt.Printf("> Dest: %s \n", redirect.Dest)
+			ffmt.Printf("> Actual: %s \n", redirect.Dest)
+			ffmt.Printf("> Status: %s \n", response.Status)
+		} else {
+			errorHandler(httpError)
+		}
 	}
 
 }
