@@ -72,19 +72,16 @@ func loadRedirects(path string) []Redirect {
 	lines := strings.Split(string(content), "\n")
 
 	if ioError == nil {
-		for _, line := range lines{
-			urls := strings.Fields(line)
-
-			redirect := Redirect{
-				Source: urls[0],
-				Dest: urls[1],
-			}
-
-			redirects = append(redirects, redirect)
-
+		for _, line := range lines {
 			if len(line) == 0 {
 				break
 			}
+
+			urls := strings.Fields(line)
+
+			redirect := Redirect{Source: urls[0], Dest: urls[1]}
+
+			redirects = append(redirects, redirect)
 		}
 	} else {
 		errorHandler(ioError)
@@ -123,20 +120,18 @@ func checkRedirect(redirect Redirect, url string, optionalArgs ...int) {
 
 	// TODO Implement redirects checking
 	if httpError == nil {
-		// TODO Fix async printing
-		ffmt.Printf("---- [%d] ---- \n", index)
-		ffmt.Printf("> Source: %s \n", redirect.Source)
-		ffmt.Printf("> Dest: %s \n", redirect.Dest)
-		ffmt.Printf("> Actual: %s \n", redirect.Dest)
-		ffmt.Printf("> Status: %s \n", response.Status)
+		ffmt.Printf(
+			"---- [%d] ---- \n" +
+				"> Source: %s \n" +
+				"> Dest: %s \n" +
+				"> Actual: %s \n" +
+				"> Status: %d \n",
+			index,
+			redirect.Source,
+			redirect.Dest,
+			redirect.Dest,
+			response.StatusCode)
 	} else {
 		errorHandler(httpError)
 	}
 }
-
-	//if ioError != nil {
-	//	errorHandler(
-	//		errors.New(
-	//			strings.Join(
-	//				[]string{"read ", path, ": ", ioError.Error()}, "")))
-	//}
