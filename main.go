@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/remeh/sizedwaitgroup"
 	"gopkg.in/ffmt.v1"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 )
 
 type Redirect struct {
@@ -91,21 +91,20 @@ func loadRedirects(path string) []Redirect {
 }
 
 func checkRedirects(redirects []Redirect, url string) {
-	var wg sync.WaitGroup
+	var swg = sizedwaitgroup.New(4)
 
 	ffmt.Printf(">>> Checking redirects for: %s \n", url)
 
 	for index, redirect := range redirects {
-		// TODO limit threads
-		go checkRedirectAsync(redirect, url, index, &wg)
-		wg.Add(1)
+		go checkRedirectAsync(redirect, url, index, &swg)
+		swg.Add()
 	}
 
-	wg.Wait()
+	swg.Wait()
 }
 
-func checkRedirectAsync(redirect Redirect, url string, index int, wg *sync.WaitGroup) {
-	defer wg.Done()
+func checkRedirectAsync(redirect Redirect, url string, index int, swg *sizedwaitgroup.SizedWaitGroup) {
+	defer swg.Done()
 	checkRedirect(redirect, url, index)
 }
 
