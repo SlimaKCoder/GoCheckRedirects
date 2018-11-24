@@ -57,7 +57,11 @@ func loadConfigs(path string) []MapConfig {
 		errorHandler(ioError)
 	}
 
-	yaml.Unmarshal([]byte(fileData), &configs)
+	yamlError := yaml.Unmarshal([]byte(fileData), &configs)
+
+	if yamlError != nil {
+		errorHandler(yamlError)
+	}
 
 	return configs
 }
