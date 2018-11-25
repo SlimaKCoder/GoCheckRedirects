@@ -95,45 +95,43 @@ func loadRedirects(path string) []Redirect {
 }
 
 func checkRedirects(redirects []Redirect, url string) {
-	var swg = sizedwaitgroup.New(4)
+	var swg = sizedwaitgroup.New(4) // TODO: Configurable number of threads
 
 	ffmt.Printf(">>> Checking redirects for: %s \n", url)
 
-	for index, redirect := range redirects {
-		go checkRedirectAsync(redirect, url, index, &swg)
+	for _, redirect := range redirects {
+		go checkRedirectAsync(redirect, url, &swg)
 		swg.Add()
 	}
 
 	swg.Wait()
+
+	ffmt.Printf("\n-----------\n>>> Processed %d redirects", len(redirects))
 }
 
-func checkRedirectAsync(redirect Redirect, url string, index int, swg *sizedwaitgroup.SizedWaitGroup) {
+func checkRedirectAsync(redirect Redirect, url string, swg *sizedwaitgroup.SizedWaitGroup) {
 	defer swg.Done()
-	checkRedirect(redirect, url, index)
+	checkRedirect(redirect, url)
 }
 
-func checkRedirect(redirect Redirect, url string, optionalArgs ...int) {
-	var index int
-
-	if optionalArgs != nil {
-		index = optionalArgs[0]
-	}
-
+func checkRedirect(redirect Redirect, url string) {
 	response, httpError := http.Get(url)
 
-	// TODO Implement redirects checking
+	statusCode := response.StatusCode
+
 	if httpError == nil {
-		ffmt.Printf(
-			"---- [%d] ---- \n" +
-				"> Source: %s \n" +
-				"> Dest: %s \n" +
-				"> Actual: %s \n" +
-				"> Status: %d \n",
-			index,
-			redirect.Source,
-			redirect.Dest,
-			redirect.Dest,
-			response.StatusCode)
+		if statusCode != 301 {
+			ffmt.Printf(
+				"----------- \n"+
+					"> Source: %s \n"+
+					"> Dest: %s \n"+
+					"> Actual: %s \n"+
+					"> Status: %d \n",
+				redirect.Source,
+				redirect.Dest,
+				redirect.Dest,
+				statusCode)
+		}
 	} else {
 		errorHandler(httpError)
 	}
