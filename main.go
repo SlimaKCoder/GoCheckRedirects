@@ -117,9 +117,9 @@ func checkRedirectAsync(redirect Redirect, url string, swg *sizedwaitgroup.Sized
 func checkRedirect(redirect Redirect, url string) {
 	response, httpError := http.Get(url)
 
-	statusCode := response.StatusCode
-
 	if httpError == nil {
+		statusCode := response.StatusCode
+
 		if statusCode != 301 {
 			ffmt.Printf(
 				"----------- \n"+
